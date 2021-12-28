@@ -92,12 +92,15 @@ async def dashboard(access_token: str = Header(None, convert_underscores=False))
     return dashboard
 
 
-vibes = {'Uplifting': ['yellow-200', 'yellow-300'], 'Romantic': ['red-300', 'red-400']}
+vibes = {
+    'Uplifting': ['yellow-200', 'yellow-300'],
+    'Romantic': ['red-300', 'red-400']
+}
 
 
 @app.get('/api/vibes')
 async def get_vibes():
-    return [{k: v} for k, v in vibes.items()]
+    return [{'name': k, 'colors': v} for k, v in vibes.items()]
 
 
 @app.post('/api/mood')
@@ -145,22 +148,61 @@ async def get_mood(mood_id: str):
 
 @app.get('/api/songs/search')
 async def search_songs(query: str, access_token: str = Header(None, convert_underscores=False)):
-    search_resp = requests.get('https://api.spotify.com/v1/search',
+    search_resp = requests.get(
+        'https://api.spotify.com/v1/search',
         params={'type': 'track', 'q': query, 'limit': 5},
         headers={
             'Authorization': "Bearer " + access_token
         }
     )
+    if search_resp.status_code != 200:
+        raise HTTPException(status_code=404, detail="Failed API calls")
     songs = []
     for s in search_resp.json()['tracks']['items']:
         new_song = {}
         new_song['name'] = s['name']
         new_song['id'] = s['id']
         new_song['album'] = s['album']['name']
-        new_song['artists'] = ",".join([a['name'] for a in s['artists']])
+        new_song['artists'] = ", ".join([a['name'] for a in s['artists']])
         for i in s['album']['images']:
             if i['height'] == 64:
                 new_song['image_url'] = i['url']
         songs.append(new_song)
     return songs
 
+
+@app.get('/api/mood/{mood_id}/recommendations')
+async def get_mood_recommendations(mood_id: str, access_token: str = Header(None, convert_underscores=False)):
+    user_email = get_email(token_to_id, access_token)
+    if user_email is None:
+        raise HTTPException(status_code=400, detail='Failed to get user id from cache')
+    curr_user = await engine.find_one(User, User.email == user_email)
+    mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
+    if mood is None:
+        raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + ' not found.')
+    print(mood.author.email)
+    print(curr_user.email)
+    if mood.author.email != curr_user.email:
+        raise HTTPException(status_code=405, detail='User does not have permission to delete this mood.')
+    s_tracks = mood.songs[:5]
+    reqs_resp = requests.get('https://api.spotify.com/v1/recommendations',
+        params={
+            'limit': 10,
+            'seed_tracks': ",".join(s_tracks)
+        },
+        headers={
+            'Authorization': "Bearer " + access_token
+        }
+    )
+    songs = []
+    for s in reqs_resp.json()['tracks']:
+        new_song = {}
+        new_song['name'] = s['name']
+        new_song['id'] = s['id']
+        new_song['album'] = s['album']['name']
+        new_song['artists'] = ", ".join([a['name'] for a in s['artists']])
+        for i in s['album']['images']:
+            if i['height'] == 64:
+                new_song['image_url'] = i['url']
+        songs.append(new_song)
+    return songs
