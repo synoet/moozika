@@ -12,7 +12,7 @@ export const useAuth = () => {
 
 // fetch user profile
 export const fetchUser = async() => {
-  const res = await axios.post('http://192.168.5.164:8000/api/user', {}, {
+  return await axios.post('http://192.168.5.164:8000/api/user', {}, {
     headers: {
       'access_token': storage.getToken(),
     },
