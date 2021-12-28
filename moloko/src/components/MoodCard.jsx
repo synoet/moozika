@@ -1,16 +1,18 @@
 import React, {memo} from 'react';
+import { useHistory } from "react-router-dom";
 
 const MoodCard = ({create = false, name,  vibes, colors, likes}) =>{
+  const history = useHistory();
 
   if (!create) {
     return (
       <div className={`bg-slate-800 w-full rounded-sm border border-slate-700 p-4 shadow-indigo-500/10 shadow-lg space-y-4 hover:shadow-indigo-400/20 cursor-pointer hover:border-slate-600`}>
-        <h2 className={`text-3xl font-bold text-transparent bg-gradient-to-r from-indigo-500 to-orange-500 bg-clip-text`}>{name}</h2>
+        <h2 className={`text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-${vibes[0].colors[0]} to-${vibes[vibes.length - 1 ].colors[1]}`}>{name}</h2>
         <div className='flex items-center space-x-4'>
           {vibes && vibes.map((vibe, index) => (
             <div
               key={`${vibe.name}-${index}`}
-              className={`pb-1 pt-1 pl-2 pr-2 rounded-full bg-gradient-to-r from-yellow-300 to-yellow-400 text-black text-sm`}
+              className={`pb-1 pt-1 pl-2 pr-2 rounded-full bg-gradient-to-r from-${vibe.colors[0]} to-${vibe.colors[1]} text-black text-sm`}
             >
               {vibe.name}
             </div>
@@ -30,7 +32,9 @@ const MoodCard = ({create = false, name,  vibes, colors, likes}) =>{
     )
   } else {
     return (
-      <div className='bg-slate-800/20 w-full rounded-sm border-dashed border-2 border-slate-700 flex flex-col justify-center items-center hover:bg-slate-800/40 cursor-pointer '>
+      <div
+        onClick={ () => history.push('/create')}
+        className='bg-slate-800/20 w-full rounded-sm border-dashed border-2 border-slate-700 flex flex-col justify-center items-center hover:bg-slate-800/40 cursor-pointer '>
         <p className='text-2xl'>🔨 Create a Mood</p>
       </div>
     )
