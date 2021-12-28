@@ -17,7 +17,10 @@ export const fetchUser = async() => {
     headers: {
       'access_token': storage.getToken(),
     },
-  }).catch((error) => console.log(error));
+  }).catch((error) => {
+    console.log(error)
+    storage.clearToken()
+  });
 };
 
 export const logout = () => {

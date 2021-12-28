@@ -28,7 +28,6 @@ const Dashboard = () => {
               name={mood.name}
               vibes={mood.vibes}
               likes={mood.likes}
-              colors={['indigo-500', 'yellow-500']}
             />
           </div>
         ))}
