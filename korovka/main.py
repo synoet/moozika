@@ -193,7 +193,7 @@ async def delete_mood(mood_id: str, access_token: str = Header(None, convert_und
     return {'status': 'Deleted successfully'}
 
 
-@app.get('/api/mood/{mood_id}', response_model=Mood)
+@app.get('/api/mood/{mood_id}', response_model=DashboardMood)
 async def get_mood(mood_id: str):
     mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
     if mood is None:
