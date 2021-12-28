@@ -95,8 +95,10 @@ async def dashboard(access_token: str = Header(None, convert_underscores=False))
                 name=m.name,
                 created_on=m.created_date,
                 likes=m.likes,
-                liked=str(m.id) in user.liked,
-                vibes=[{'name': m, 'colors': vibes[m]} for m in m.vibes]
+                # liked=str(m.id) in user.liked,
+                vibes=[{'name': m, 'colors': vibes[m]} for m in m.vibes],
+                songs=m.songs,
+                description=m.description
             ) for m in user_moods],
         liked_moodz=[
             DashboardMood(
@@ -104,8 +106,9 @@ async def dashboard(access_token: str = Header(None, convert_underscores=False))
                 name=m.name,
                 created_on=m.created_date,
                 likes=m.likes,
-                liked=str(m.id) in user.liked,
-                vibes=[{'name': m, 'colors': vibes[m]} for m in m.vibes]
+                # liked=str(m.id) in user.liked,
+                vibes=[{'name': m, 'colors': vibes[m]} for m in m.vibes],
+                description=m.description
             ) for m in liked_moods
         ]
     )
@@ -149,21 +152,23 @@ async def create_mood(mood: MoodBody, access_token: str = Header(None, convert_u
 
 
 @app.post('/api/mood/{mood_id}/edit')
-async def edit_mood(update: MoodBody, access_token: str = Header(None, convert_underscores=False)):
+async def edit_mood(mood_id: str, update: MoodBody, access_token: str = Header(None, convert_underscores=False)):
     user_email = get_email(token_to_id, access_token)
     if user_email is None:
         raise HTTPException(status_code=400, detail='Failed to get user id from cache')
     curr_user = await engine.find_one(User, User.email == user_email)
-    mood = await engine.find_one(Mood, Mood.id == mood_id)
+    mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
     if mood is None:
         raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + 'not found.')
-    if mood.author is not curr_user:
+    if mood.author.email != curr_user.email:
         raise HTTPException(status_code=405, detail='User does not have permission to edit this mood.')
     mood.description = update.description
     mood.name = update.name
     mood.vibes = update.vibes
     mood.songs = update.songs
     await engine.save(mood)
+    curr_user.moods.remove(mood_id)
+    curr_user.moods.insert(0, str(mood.id))
     return {'status': 'success'}
 
 
@@ -173,12 +178,18 @@ async def delete_mood(mood_id: str, access_token: str = Header(None, convert_und
     if user_email is None:
         raise HTTPException(status_code=400, detail='Failed to get user id from cache')
     curr_user = await engine.find_one(User, User.email == user_email)
-    mood = await engine.find_one(Mood, Mood.id == mood_id)
+    mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
     if mood is None:
         raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + 'not found.')
-    if mood.author is not curr_user:
+    if mood.author != curr_user:
         raise HTTPException(status_code=405, detail='User does not have permission to delete this mood.')
+    curr_user.moods.remove(mood_id)
+    try:
+        curr_user.liked.remove(mood_id)
+    except ValueError:
+        print("User did not like the post in the first place!")
     await engine.delete(mood)
+    await engine.save(curr_user)
     return {'status': 'Deleted successfully'}
 
 
@@ -214,6 +225,28 @@ async def search_songs(query: str, access_token: str = Header(None, convert_unde
         songs.append(new_song)
     return songs
 
+@app.get('/api/songs/{id}')
+async def get_song_by_id(id: str, access_token: str = Header(None, convert_underscores=False)):
+    song_resp = requests.get(
+        'https://api.spotify.com/v1/tracks/{}'.format(id),
+        headers={
+            'Authorization': "Bearer " + access_token
+        }
+    )
+    if song_resp.status_code != 200:
+        raise HTTPException(status_code=404, detail="Failed API calls")
+    song_json = song_resp.json()
+    song = {
+        'name': song_json['name'],
+        'id': id,
+        'album': song_json['album']['name'],
+        'artists': ", ".join([a['name'] for a in song_json['artists']])
+    }
+    for i in song_json['album']['images']:
+        if i['height'] == 64:
+            song['image_url'] = i['url']
+    return song
+
 
 @app.get('/api/mood/{mood_id}/recommendations')
 async def get_mood_recommendations(mood_id: str, access_token: str = Header(None, convert_underscores=False)):
@@ -227,7 +260,8 @@ async def get_mood_recommendations(mood_id: str, access_token: str = Header(None
     if mood.author.email != curr_user.email:
         raise HTTPException(status_code=405, detail='User does not have permission to delete this mood.')
     s_tracks = mood.songs[:5]
-    reqs_resp = requests.get('https://api.spotify.com/v1/recommendations',
+    reqs_resp = requests.get(
+        'https://api.spotify.com/v1/recommendations',
         params={
             'limit': 10,
             'seed_tracks': ",".join(s_tracks)
@@ -251,7 +285,7 @@ async def get_mood_recommendations(mood_id: str, access_token: str = Header(None
 
 
 @app.get('/api/mood/{mood_id}/like')
-async def like_mood(mood_id: str):
+async def like_mood(mood_id: str, access_token: str = Header(None, convert_underscores=False)):
     user_email = get_email(token_to_id, access_token)
     if user_email is None:
         raise HTTPException(status_code=400, detail='Failed to get user id from cache')
