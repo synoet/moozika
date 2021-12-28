@@ -1,6 +1,7 @@
 import React, {createContext, useContext} from 'react';
-import axios from 'axios';
+import { axios } from '../lib/axios';
 import storage from '../utils/storage';
+
 
 // Auth Context
 export const AuthContext = createContext(null);
@@ -17,4 +18,8 @@ export const fetchUser = async() => {
       'access_token': storage.getToken(),
     },
   }).catch((error) => console.log(error));
-}
+};
+
+export const logout = () => {
+  storage.clearToken()
+};

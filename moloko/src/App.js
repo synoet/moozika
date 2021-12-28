@@ -4,7 +4,7 @@ import AuthRedirect from './pages/Auth/AuthRedirect';
 import Login from './pages/Auth/Login';
 import SpotifyLogin from "./pages/Auth/SpotifyLogin";
 import AuthProvider from './providers/auth';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/Dashboard/Dashboard';
 
 function App() {
   return (
