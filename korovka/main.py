@@ -39,6 +39,7 @@ engine = AIOEngine(motor_client=client, database=f'moozika_{MONGODB_ENV}')
 
 token_to_id = {'BQAAAreO99EVEYSvTn2RYEHl0R6yBL1iGOvIGOlJrR2wCMbfU8VI2Yk3LGBxxwcYYYcidP6i3WzcJoQqTx8Y2INlDr_pUR3yNP6rYvtZJxmHfvv7eGjrHwVjmjHHoJvHpHfVhB6GiLf34EVjkOKuYmUyCo-uWo_h5qO_riq_UD_bSeyibaPKp2fh0zbt9jYtXUJFehzKo4JMpdmLEfp47M7YdHGA&token_type=Bearer&expires_in=3600': 'teonys@nyu.edu'}
 
+
 @app.post("/api/user", response_model=User)
 async def init_user(access_token: str = Header(None, convert_underscores=False)):
     print("Access token:" + access_token)
@@ -83,24 +84,16 @@ async def dashboard(access_token: str = Header(None, convert_underscores=False))
     if user_email is None:
         raise HTTPException(status_code=400, detail='Failed to get user id from cache')
     user = await engine.find_one(User, User.email == user_email)
+    user_moods = [await engine.find_one(Mood, Mood.id == bson.ObjectId(mood)) for mood in user.moods]
     dashboard = Dashboard(
         user_email=user.email,
-        moodz=[
-            DashboardMood(
-                name="Doomer",
-                likes=5,
-                vibes=[{'name': v, 'colors': vibes[v]} for v in ["Uplifting"]],
-            ),
-            DashboardMood(
-                name="Korra is cute",
-                likes=2,
-                vibes=[{'name': v, 'colors': vibes[v]} for v in ["Uplifting"]],
-            )
-        ]
+        moodz=[DashboardMood(name=m.name, created_on=m.created_date, likes = len(m.likes), vibes=[{'name': m, 'colors':vibes[m]} for m in m.vibes]) for m in user_moods]
     )
     return dashboard
 
+
 vibes = {'Uplifting': ['yellow-200', 'yellow-300'], 'Romantic': ['red-300', 'red-400']}
+
 
 @app.get('/api/vibes')
 async def get_vibes():
@@ -118,10 +111,14 @@ async def create_mood(mood: MoodBody, access_token: str = Header(None, convert_u
         author=curr_user,
         vibes=mood.vibes,
         name=mood.name,
-        description=mood.description
+        description=mood.description,
+        songs=mood.songs
     )
     await engine.save(new_mood)
+    curr_user.moods.append(str(new_mood.id))
+    await engine.save(curr_user)
     return new_mood
+
 
 @app.delete('/api/mood/{mood_id}')
 async def delete_mood(mood_id: str, access_token: str = Header(None, convert_underscores=False)):
@@ -137,9 +134,12 @@ async def delete_mood(mood_id: str, access_token: str = Header(None, convert_und
     await engine.delete(mood)
     return {'status': 'Deleted successfully'}
 
+
 @app.get('/api/mood/{mood_id}', response_model=Mood)
 async def get_mood(mood_id: str):
     mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
+    if mood is None:
+        raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + 'not found.')
     return mood
 
 
@@ -163,3 +163,4 @@ async def search_songs(query: str, access_token: str = Header(None, convert_unde
                 new_song['image_url'] = i['url']
         songs.append(new_song)
     return songs
+
