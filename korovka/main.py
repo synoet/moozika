@@ -197,7 +197,7 @@ async def delete_mood(mood_id: str, access_token: str = Header(None, convert_und
 async def get_mood(mood_id: str):
     mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
     if mood is None:
-        raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + 'not found.')
+        raise HTTPException(status_code=404, detail='Mood with id {} not found.'.format(mood_id))
     return mood
 
 
