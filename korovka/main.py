@@ -68,9 +68,10 @@ async def init_user(access_token: str = Header(None, convert_underscores=False))
         logins=1,
         created_date=datetime.datetime.utcnow().isoformat(),
         last_login_date=datetime.datetime.utcnow().isoformat(),
-        profile_pic_url = user_json['images'][0]['url'] if user_json['images'] else '',
-        display_name = user_json['display_name'],
-        spotify_id = user_json['id']
+        profile_pic_url=user_json['images'][0]['url'] if user_json['images'] else '',
+        display_name=user_json['display_name'],
+        spotify_id=user_json['id'],
+        liked=[]
     )
     await engine.save(new_user)
     token_to_id[access_token] = new_user.email
@@ -142,9 +143,28 @@ async def create_mood(mood: MoodBody, access_token: str = Header(None, convert_u
     )
     await engine.save(new_mood)
     curr_user.moods.append(str(new_mood.id))
-    curr_user.liked.insert(0, new_mood.id)
+    curr_user.liked.insert(0, str(new_mood.id))
     await engine.save(curr_user)
     return new_mood
+
+
+@app.post('/api/mood/{mood_id}/edit')
+async def edit_mood(update: MoodBody, access_token: str = Header(None, convert_underscores=False)):
+    user_email = get_email(token_to_id, access_token)
+    if user_email is None:
+        raise HTTPException(status_code=400, detail='Failed to get user id from cache')
+    curr_user = await engine.find_one(User, User.email == user_email)
+    mood = await engine.find_one(Mood, Mood.id == mood_id)
+    if mood is None:
+        raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + 'not found.')
+    if mood.author is not curr_user:
+        raise HTTPException(status_code=405, detail='User does not have permission to edit this mood.')
+    mood.description = update.description
+    mood.name = update.name
+    mood.vibes = update.vibes
+    mood.songs = update.songs
+    await engine.save(mood)
+    return {'status': 'success'}
 
 
 @app.delete('/api/mood/{mood_id}')
@@ -247,3 +267,5 @@ async def like_mood(mood_id: str):
         curr_user.liked.insert(0, str(mood.id))
     await engine.save_all([mood, curr_user])
     return {'status': 'completed'}
+
+
