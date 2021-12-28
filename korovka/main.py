@@ -198,7 +198,17 @@ async def get_mood(mood_id: str):
     mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
     if mood is None:
         raise HTTPException(status_code=404, detail='Mood with id {} not found.'.format(mood_id))
-    return mood
+    m = DashboardMood(
+        id=str(mood.id),
+        name=mood.name,
+        created_on=mood.created_date,
+        likes=mood.likes,
+        # liked=str(mood.id) in user.liked,
+        vibes=[{'name': m, 'colors': vibes[m]} for m in mood.vibes],
+        songs=mood.songs,
+        description=mood.description
+    )
+    return m
 
 
 @app.get('/api/songs/search')
