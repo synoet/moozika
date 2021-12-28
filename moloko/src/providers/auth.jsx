@@ -6,7 +6,7 @@ const AuthProvider = ({children}) => {
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    fetchUser().then((res) => console.log(res))
+    fetchUser().then((res) => setUser(res.data))
   }, [reload]);
 
   return (
