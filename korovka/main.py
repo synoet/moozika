@@ -1,5 +1,6 @@
 from requests import status_codes
 from fastapi import FastAPI, Header, HTTPException
+from korovka.models import DisplayMood
 from models import User, Dashboard, Mood, DashboardMood, MoodBody
 from odmantic import AIOEngine
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -193,12 +194,12 @@ async def delete_mood(mood_id: str, access_token: str = Header(None, convert_und
     return {'status': 'Deleted successfully'}
 
 
-@app.get('/api/mood/{mood_id}', response_model=DashboardMood)
+@app.get('/api/mood/{mood_id}', response_model=DisplayMood)
 async def get_mood(mood_id: str):
     mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
     if mood is None:
         raise HTTPException(status_code=404, detail='Mood with id {} not found.'.format(mood_id))
-    m = DashboardMood(
+    m = DisplayMood(
         id=str(mood.id),
         name=mood.name,
         created_on=mood.created_date,
@@ -206,7 +207,9 @@ async def get_mood(mood_id: str):
         # liked=str(mood.id) in user.liked,
         vibes=[{'name': m, 'colors': vibes[m]} for m in mood.vibes],
         songs=mood.songs,
-        description=mood.description
+        description=mood.description,
+        author=mood.author.display_name,
+        img_url=mood.author.profile_pic_url
     )
     return m
 
