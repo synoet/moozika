@@ -14,12 +14,13 @@ class User(Model):
     display_name: str
     profile_pic_url: str
     moods: List[str]
+    liked: List[str]
 
 
 class Mood(Model):
     name: str
     description: str
-    likes: List[str]
+    likes: int
     vibes: List[str]
     songs: List[str]
     created_date: str = str(datetime.datetime.now())
@@ -34,8 +35,10 @@ class MoodBody(BaseModel):
 
 
 class DashboardMood(BaseModel):
+    id: str
     name: str
     likes: int
+    liked: bool
     created_on: str = str(datetime.datetime.now())
     vibes: List[Dict[str, Any]]
 
@@ -43,4 +46,5 @@ class DashboardMood(BaseModel):
 class Dashboard(BaseModel):
     user_email: str
     moodz: List[DashboardMood]
+    liked_moodz: List[DashboardMood]
 

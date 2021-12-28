@@ -85,16 +85,39 @@ async def dashboard(access_token: str = Header(None, convert_underscores=False))
         raise HTTPException(status_code=400, detail='Failed to get user id from cache')
     user = await engine.find_one(User, User.email == user_email)
     user_moods = [await engine.find_one(Mood, Mood.id == bson.ObjectId(mood)) for mood in user.moods]
+    liked_moods = [await engine.find_one(Mood, Mood.id == bson.ObjectId(mood)) for mood in user.liked]
     dashboard = Dashboard(
         user_email=user.email,
-        moodz=[DashboardMood(name=m.name, created_on=m.created_date, likes = len(m.likes), vibes=[{'name': m, 'colors':vibes[m]} for m in m.vibes]) for m in user_moods]
+        moodz=[
+            DashboardMood(
+                id=str(m.id),
+                name=m.name,
+                created_on=m.created_date,
+                likes=m.likes,
+                liked=str(m.id) in user.liked,
+                vibes=[{'name': m, 'colors': vibes[m]} for m in m.vibes]
+            ) for m in user_moods],
+        liked_moodz=[
+            DashboardMood(
+                id=str(m.id),
+                name=m.name,
+                created_on=m.created_date,
+                likes=m.likes,
+                liked=str(m.id) in user.liked,
+                vibes=[{'name': m, 'colors': vibes[m]} for m in m.vibes]
+            ) for m in liked_moods
+        ]
     )
     return dashboard
 
 
 vibes = {
-    'Uplifting': ['yellow-200', 'yellow-300'],
-    'Romantic': ['red-300', 'red-400']
+    'Uplifting': ['yellow-100', 'yellow-300'],
+    'Romantic': ['red-200', 'red-400'],
+    'Calm': ['blue-200', 'blue-400'],
+    'Fresh': ['green-300', 'green-500'],
+    'Eclectic': ['purple-300', 'purple-500'],
+    'Energetic': ['orange-400', 'orange-600']
 }
 
 
@@ -110,7 +133,7 @@ async def create_mood(mood: MoodBody, access_token: str = Header(None, convert_u
         raise HTTPException(status_code=400, detail='Failed to get user id from cache')
     curr_user = await engine.find_one(User, User.email == user_email)
     new_mood = Mood(
-        likes=[],
+        likes=1,
         author=curr_user,
         vibes=mood.vibes,
         name=mood.name,
@@ -119,6 +142,7 @@ async def create_mood(mood: MoodBody, access_token: str = Header(None, convert_u
     )
     await engine.save(new_mood)
     curr_user.moods.append(str(new_mood.id))
+    curr_user.liked.insert(0, new_mood.id)
     await engine.save(curr_user)
     return new_mood
 
@@ -180,8 +204,6 @@ async def get_mood_recommendations(mood_id: str, access_token: str = Header(None
     mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
     if mood is None:
         raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + ' not found.')
-    print(mood.author.email)
-    print(curr_user.email)
     if mood.author.email != curr_user.email:
         raise HTTPException(status_code=405, detail='User does not have permission to delete this mood.')
     s_tracks = mood.songs[:5]
@@ -206,3 +228,22 @@ async def get_mood_recommendations(mood_id: str, access_token: str = Header(None
                 new_song['image_url'] = i['url']
         songs.append(new_song)
     return songs
+
+
+@app.get('/api/mood/{mood_id}/like')
+async def like_mood(mood_id: str):
+    user_email = get_email(token_to_id, access_token)
+    if user_email is None:
+        raise HTTPException(status_code=400, detail='Failed to get user id from cache')
+    curr_user = await engine.find_one(User, User.email == user_email)
+    mood = await engine.find_one(Mood, Mood.id == bson.ObjectId(mood_id))
+    if mood is None:
+        raise HTTPException(status_code=404, detail='Mood with id ' + mood_id + ' not found.')
+    if str(mood.id) in curr_user.liked:
+        mood.likes -= 1
+        curr_user.liked.remove(str(mood.id))
+    else:
+        mood.likes += 1
+        curr_user.liked.insert(0, str(mood.id))
+    await engine.save_all([mood, curr_user])
+    return {'status': 'completed'}
