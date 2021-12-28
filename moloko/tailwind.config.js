@@ -6,6 +6,12 @@ module.exports = {
     extend: {
       width: {
         'large': '1100px',
+        'medium': '500px',
+      },
+      height: {
+        'xlarge': '1400px',
+        'large': '1100px',
+        'medium': '500px',
       },
     },
   },

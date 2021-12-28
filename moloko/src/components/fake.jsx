@@ -5,8 +5,8 @@ export const Fake = () => {
   <>
   <p className= 'bg-gradient-to-r from-red-100 to-red-100'>fake</p>
   <p className= 'bg-gradient-to-r from-red-200 to-red-200'>fake</p>
-  <p className= 'bg-gradient-to-r from-red-300 to-red-300'>fake</p>
-  <p className= 'bg-gradient-to-r from-red-400 to-red-400'>fake</p>
+  <p className= 'bg-gradient-to-r rom-red-300 to-red-300'>fake</p>
+  <p className= 'bg-gradient-to-r rom-red-400 to-red-400'>fake</p>
   <p className= 'bg-gradient-to-r from-red-500 to-red-500'>fake</p>
   <p className= 'bg-gradient-to-r from-red-600 to-red-600'>fake</p>
   <p className= 'bg-gradient-to-r from-red-700 to-red-700'>fake</p>

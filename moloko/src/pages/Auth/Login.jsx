@@ -19,6 +19,8 @@ const Login = () => {
             <BsSpotify /> <span>Log In with Spotify</span>
           </button>
         </div>
+      ) : window.location !== '/' ? (
+        <></>
       ) : (
         <Redirect to={'/dashboard'} />
       )}

@@ -2,7 +2,7 @@ import axios from 'axios';
 import storage from "../../../utils/storage";
 
 export const getDashboard = async() => {
-  return await axios.get('http://192.168.5.164:8000/api/dashboard',  {
+  return await axios.get('https://moozika.herokuapp.com/api/dashboard',  {
     headers: {
       'access_token': storage.getToken(),
     },

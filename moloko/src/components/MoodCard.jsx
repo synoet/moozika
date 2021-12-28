@@ -1,14 +1,15 @@
 import React, {memo} from 'react';
 import { useHistory } from "react-router-dom";
 
-const MoodCard = ({create = false, name,  vibes, colors, likes}) =>{
+const MoodCard = ({id, create = false, name,  vibes,  likes, noControl = false, onEdit, onDelete}) =>{
   const history = useHistory();
+
 
   if (!create) {
     return (
-      <div className={`bg-slate-800 w-full rounded-sm border border-slate-700 p-4 shadow-indigo-500/10 shadow-lg space-y-4 hover:shadow-indigo-400/20 cursor-pointer hover:border-slate-600`}>
+      <div onClick={() => history.push(`/mood?id=${JSON.stringify(id)}`)} className={`bg-slate-800 w-full rounded-sm border border-slate-700 p-4 shadow-indigo-500/10 shadow-lg space-y-4 hover:shadow-in-400/20 cursor-pointer hover:border-slate-600`}>
         <h2 className={`text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-${vibes[0].colors[0]} to-${vibes[vibes.length - 1 ].colors[1]}`}>{name}</h2>
-        <div className='flex items-center space-x-4'>
+        <div className='flex items-center space-x-2'>
           {vibes && vibes.map((vibe, index) => (
             <div
               key={`${vibe.name}-${index}`}
@@ -21,11 +22,13 @@ const MoodCard = ({create = false, name,  vibes, colors, likes}) =>{
         <div className='w-full border-b border-gray-700' />
         <div className='flex items-center justify-between'>
           <p className=''>👍 <span className='ml-2'>{likes}</span></p>
-          <div className=' flex space-x-4'>
-            <button className='opacity-70 hover:opacity-100'> ✏️ Edit</button>
-            <div className='h-6 border-r-2 border-slate-700' />
-            <button className='opacity-70 hover:opacity-100'> 🗑️ Delete</button>
-          </div>
+          {!noControl &&
+            <div className=' flex space-x-4'>
+              <button className='opacity-70 hover:opacity-100' onClick={onEdit}> ✏️ Edit</button>
+              <div className='h-6 border-r-2 border-slate-700'/>
+              <button onClick={onDelete} className='opacity-70 hover:opacity-100'> 🗑️ Delete</button>
+            </div>
+          }
         </div>
 
       </div>

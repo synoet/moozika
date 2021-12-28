@@ -13,7 +13,7 @@ export const useAuth = () => {
 
 // fetch user profile
 export const fetchUser = async() => {
-  return await axios.post('http://192.168.5.164:8000/api/user', {}, {
+  return await axios.post('https://moozika.herokuapp.com/api/user', {}, {
     headers: {
       'access_token': storage.getToken(),
     },
