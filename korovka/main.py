@@ -27,7 +27,7 @@ app.add_middleware(
 MONGODB_USERNAME = os.getenv("MONGODB_USERNAME")
 MONGODB_PWD = os.getenv("MONGODB_PWD")
 MONGODB_URL_PRE = os.getenv("MONGODB_URL_PRE")
-MONGODB_ENV = "dev"
+MONGODB_ENV = os.getenv("MONGODB_ENV") if os.getenv("MONGODB_ENV") else "dev"
 
 client = AsyncIOMotorClient("mongodb+srv://{}:{}@{}.mongodb.net/moozika_{}?retryWrites=true&w=majority".format(
     MONGODB_USERNAME,
