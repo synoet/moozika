@@ -3,6 +3,7 @@ from odmantic import Field, Model, Reference
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import datetime
+import bson
 
 class User(Model):
     email: str = Field(primary_field=True)
@@ -12,6 +13,7 @@ class User(Model):
     spotify_id: str
     display_name: str
     profile_pic_url: str
+    moods: List[str]
 
 
 class Mood(Model):
@@ -19,6 +21,7 @@ class Mood(Model):
     description: str
     likes: List[str]
     vibes: List[str]
+    songs: List[str]
     created_date: str = str(datetime.datetime.now())
     author: User = Reference()
 
@@ -26,6 +29,7 @@ class Mood(Model):
 class MoodBody(BaseModel):
     name: str
     vibes: List[str]
+    songs: List[str]
     description: str
 
 
